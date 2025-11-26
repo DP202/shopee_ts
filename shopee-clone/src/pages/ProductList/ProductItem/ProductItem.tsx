@@ -44,7 +44,6 @@ function ProductItem({ product }: Props) {
             <div className='ml-2 text-sm'>
               <span>{formatNumberToSocialStyle(product.sold)}</span>
               <span className='ml-1'>Đã bán</span>
-              <span className='ml-1'>Đã bán</span>
             </div>
           </div>
         </div>

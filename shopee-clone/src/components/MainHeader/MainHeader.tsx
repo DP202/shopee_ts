@@ -1,11 +1,29 @@
 import React, { useContext, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { createSearchParams, Link, useNavigate } from 'react-router-dom'
 import Popover from '../Popover'
 import { useMutation } from '@tanstack/react-query'
 import authApi from '../../apis/auth.api'
 import { AppContext } from '../context/app.context'
+import useQueryConfig from '../../hooks/useQueryConfig'
+import { useForm } from 'react-hook-form'
+import { schema, type Schema } from '../../ultils/rules'
+import { yupResolver } from '@hookform/resolvers/yup'
+import path from '../../constant/path'
+import { omit } from 'lodash'
+
+type FormData = Pick<Schema, 'name'>
+const nameSchema = schema.pick(['name'])
 
 const MainHeader = () => {
+  const queryConfig = useQueryConfig()
+  // console.log('queryConfig : ', queryConfig)
+  const { register, handleSubmit } = useForm<FormData>({
+    defaultValues: {
+      name: ''
+    },
+    resolver: yupResolver(nameSchema)
+  })
+
   const { setIsAuthenticated, isAuthenticated, setProfile, profile } = useContext(AppContext)
 
   const navigate = useNavigate()
@@ -22,6 +40,25 @@ const MainHeader = () => {
   const handleLogout = () => {
     logoutMutation.mutate()
   }
+
+  const onSubmitSearch = handleSubmit((data) => {
+    const config = queryConfig.order
+      ? omit(
+          {
+            ...queryConfig,
+            name: data.name
+          },
+          ['order,sort_by']
+        )
+      : {
+          ...queryConfig,
+          name: data.name
+        }
+    navigate({
+      pathname: path.home,
+      search: createSearchParams(config).toString()
+    })
+  })
 
   return (
     <div className='pb-5 pt-2 bg-gradient-to-b from-red-600 to-orange-500 text-white'>
@@ -128,12 +165,12 @@ const MainHeader = () => {
             </svg>
           </Link>
 
-          <form className='col-span-9'>
+          <form className='col-span-9' onClick={onSubmitSearch}>
             <div className='bg-white rounded-sm p-1 flex'>
               <input
                 type='text'
-                name='search'
                 className='text-black px-3 py-2 flex-grow border-none outline-none bg-transparent'
+                {...register('name')}
               />
 
               <button className='rounded-sm py-2 px-6 shrink-0 bg-orange-600 hover:opacity-90 text-white'>
