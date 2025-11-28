@@ -1,7 +1,7 @@
 import React, { useContext, useRef, useState } from 'react'
 import { createSearchParams, Link, useNavigate } from 'react-router-dom'
 import Popover from '../Popover'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import authApi from '../../apis/auth.api'
 import { AppContext } from '../context/app.context'
 import useQueryConfig from '../../hooks/useQueryConfig'
@@ -10,9 +10,16 @@ import { schema, type Schema } from '../../ultils/rules'
 import { yupResolver } from '@hookform/resolvers/yup'
 import path from '../../constant/path'
 import { omit } from 'lodash'
+import { purchaseStatus } from '../../constant/purchase'
+import purchaseApi from '../../apis/purchase.api'
+import noProduct from '../../../src/assets/images/no-product.png'
+import { formatCurrency } from '../../ultils/util'
+import type { Purchase } from '../../types/purchase.type'
 
 type FormData = Pick<Schema, 'name'>
 const nameSchema = schema.pick(['name'])
+
+const MAX_PURCHASES = 5
 
 const MainHeader = () => {
   const queryConfig = useQueryConfig()
@@ -36,6 +43,17 @@ const MainHeader = () => {
       navigate('/login')
     }
   })
+
+  // khi chúng ta kiểm tra thì Header chỉ bị re-render
+  // chứ không bị unmount-mounting again
+  // trừ trường hợp logout rồi nhảy sang RegisterLayout rồi nhảy vào lại
+  // Nên các query  này sẽ không bị inActive => Không bị gọi lạ -> ko cần thiết set stale : Infiniti
+  const { data: purchasesIncartData } = useQuery({
+    queryKey: ['purchases', { status: purchaseStatus.inCart }],
+    queryFn: () => purchaseApi.getPurchases({ status: purchaseStatus.inCart })
+  })
+
+  const purchasesIncart = purchasesIncartData?.data.data as Purchase[] | undefined
 
   const handleLogout = () => {
     logoutMutation.mutate()
@@ -165,7 +183,7 @@ const MainHeader = () => {
             </svg>
           </Link>
 
-          <form className='col-span-9' onClick={onSubmitSearch}>
+          <form className='col-span-9' onSubmit={onSubmitSearch}>
             <div className='bg-white rounded-sm p-1 flex'>
               <input
                 type='text'
@@ -200,92 +218,62 @@ const MainHeader = () => {
                   className=' shadow-md rounded-sm border border-gray-200 cursor-pointer
                 text-sm max-w-[400px] text-left w-full block py-3 px-4 hover:bg-slate-100 bg-white'
                 >
-                  <div className='p-2'>
-                    <div className='text-gray-400 capitalize'>Sản phẩm mới thêm</div>
-                    <div className='mt-5'>
-                      <div className='mt-4 flex'>
-                        <div className='flex-shrink-0'>
-                          <img
-                            src='https://down-vn.img.susercontent.com/file/vn-11134207-7ras8-m29ctglmn4j663_tn'
-                            alt='#'
-                            className='w-11 h-11 object-cover'
-                          />
+                  {/* ngay đây  -> kiểm tra*/}
+                  {
+                    // ban đầu chưa thêm gì
+
+                    purchasesIncart ? (
+                      <div className='p-2'>
+                        <div className='text-gray-400 capitalize'>Sản phẩm mới thêm</div>
+                        <div className='mt-5'>
+                          {purchasesIncart.slice(0, MAX_PURCHASES).map((purchasesItem) => {
+                            return (
+                              <div className='mt-2 py-2 flex hover:bg-red-100' key={purchasesItem._id}>
+                                <div className='flex-shrink-0'>
+                                  <img
+                                    src={purchasesItem.product.image}
+                                    alt={purchasesItem.product.name}
+                                    className='w-11 h-11 object-cover'
+                                  />
+                                </div>
+                                <div className='grow ml-2 overflow-hidden flex'>
+                                  <div className='truncate'>{purchasesItem.product.name}</div>
+                                  <div className='ml-2 shrink-0'>
+                                    <span className='text-orange-500'>
+                                      đ{formatCurrency(purchasesItem.product.price)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
-                        <div className='grow ml-2 overflow-hidden flex'>
-                          <div className='truncate'>
-                            Quẩn dài nỉ tăm PN STORE nam nữ cạp chun form suông ống rộng kiểu dáng basic đen be ghi QNI
+                        <div className='flex mt-6 items-center justify-between'>
+                          <div className='capitalize text-xs text-gray-500'>
+                            {purchasesIncart.length > MAX_PURCHASES
+                              ? purchasesIncart.length - MAX_PURCHASES
+                              : '  Thêm hàng vào giỏ'}{' '}
+                            Thêm hàng vào giỏ
                           </div>
-                          <div className='ml-2 shrink-0'>
-                            <span className='text-orange-500'>đ456.789</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className='mt-4 flex'>
-                        <div className='flex-shrink-0'>
-                          <img
-                            src='https://down-vn.img.susercontent.com/file/vn-11134207-7ras8-m29ctglmn4j663_tn'
-                            alt='#'
-                            className='w-11 h-11 object-cover'
-                          />
-                        </div>
-                        <div className='grow ml-2 overflow-hidden flex'>
-                          <div className='truncate'>
-                            Quẩn dài nỉ tăm PN STORE nam nữ cạp chun form suông ống rộng kiểu dáng basic đen be ghi QNI
-                          </div>
-                          <div className='ml-2 shrink-0'>
-                            <span className='text-orange-500'>đ456.789</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className='mt-4 flex'>
-                        <div className='flex-shrink-0'>
-                          <img
-                            src='https://down-vn.img.susercontent.com/file/vn-11134207-7ras8-m29ctglmn4j663_tn'
-                            alt='#'
-                            className='w-11 h-11 object-cover'
-                          />
-                        </div>
-                        <div className='grow ml-2 overflow-hidden flex'>
-                          <div className='truncate'>
-                            Quẩn dài nỉ tăm PN STORE nam nữ cạp chun form suông ống rộng kiểu dáng basic đen be ghi QNI
-                          </div>
-                          <div className='ml-2 shrink-0'>
-                            <span className='text-orange-500'>đ456.789</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className='mt-4 flex'>
-                        <div className='flex-shrink-0'>
-                          <img
-                            src='https://down-vn.img.susercontent.com/file/vn-11134207-7ras8-m29ctglmn4j663_tn'
-                            alt='#'
-                            className='w-11 h-11 object-cover'
-                          />
-                        </div>
-                        <div className='grow ml-2 overflow-hidden flex'>
-                          <div className='truncate'>
-                            Quẩn dài nỉ tăm PN STORE nam nữ cạp chun form suông ống rộng kiểu dáng basic đen be ghi QNI
-                          </div>
-                          <div className='ml-2 shrink-0'>
-                            <span className='text-orange-500'>đ456.789</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className='flex mt-6 items-center justify-between'>
-                      <div className='capitalize text-xs text-gray-500'>Thêm hàng vào giỏ</div>
-                      <button
-                        className='
+                          <button
+                            className='
                       capitalize bg-orange-700 hover:bg-orange-500/80 px-4 py-2 rounded-sm text-white cursor-pointer'
-                      >
-                        Xem giỏ hàng
-                      </button>
-                    </div>
-                  </div>
+                          >
+                            Xem giỏ hàng
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className='p-2 w-[300px] h-[300px] flex items-center justify-center flex-wrap flex-col'>
+                        <img src={noProduct} alt='no purchases' className='h-24 w-24' />
+                        <div className='mt-3 capitalize'>Chưa có sản phẩm</div>
+                      </div>
+                    )
+                  }
                 </div>
               }
             >
-              <Link to='/' className=''>
+              <Link to='/' className='relative'>
                 <svg
                   xmlns='http://www.w3.org/2000/svg'
                   fill='none'
@@ -300,6 +288,9 @@ const MainHeader = () => {
                     d='M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z'
                   />
                 </svg>
+                <span className='absolute top-[-5px] left-[17px] rounded-full px-2 py-1 bg-white  text-xs px-[9px] text-orange-600 py-[1px]'>
+                  {purchasesIncart?.length}
+                </span>
               </Link>
             </Popover>
           </div>
