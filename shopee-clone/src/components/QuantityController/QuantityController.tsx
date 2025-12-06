@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+import type React from 'react'
 import InputNumber, { type InputNumberProps } from '../InputNumber'
 
 interface Props extends InputNumberProps {
@@ -6,6 +8,7 @@ interface Props extends InputNumberProps {
   onIncrease?: (value: number) => void
   onDecrease?: (value: number) => void
   onType?: (value: number) => void
+  onFocusOut?: (value: number) => void
   classNameWrapper?: string
 }
 
@@ -14,7 +17,8 @@ export default function QuantityController({
   onIncrease,
   onDecrease,
   onType,
-  classNameWrapper = 'ml-10',
+  onFocusOut,
+  classNameWrapper = 'ml-2',
   value,
   ...rest
 }: Props) {
@@ -50,6 +54,11 @@ export default function QuantityController({
     onDecrease && onDecrease(_value)
   }
 
+  const handleBlur = (event: React.FocusEvent<HTMLInputElement, Element>) => {
+    // kiểm tra nếu có onFocusOut thì gọi onFocusOut
+    onFocusOut && onFocusOut(Number(event.target.value))
+  }
+
   return (
     <div className={'flex items-center ' + classNameWrapper}>
       <button
@@ -73,6 +82,7 @@ export default function QuantityController({
         classNameError='hidden'
         classNameInput='h-8 w-14 border-t border-b border-gray-300 p-1 text-center outline-none'
         onChange={handleChange}
+        onBlur={handleBlur}
         {...rest} // Những thành phần còn lại
       />
 

@@ -1,7 +1,7 @@
 import React, { useContext, useRef, useState } from 'react'
 import { createSearchParams, Link, useNavigate } from 'react-router-dom'
 import Popover from '../Popover'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import authApi from '../../apis/auth.api'
 import { AppContext } from '../context/app.context'
 import useQueryConfig from '../../hooks/useQueryConfig'
@@ -34,13 +34,15 @@ const MainHeader = () => {
   const { setIsAuthenticated, isAuthenticated, setProfile, profile } = useContext(AppContext)
 
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
     onSuccess: () => {
       setIsAuthenticated(false)
       setProfile(null)
-      navigate('/login')
+      // navigate('/login')
+      queryClient.removeQueries({ queryKey: ['purchases', { status: purchaseStatus.inCart }] })
     }
   })
 
@@ -50,7 +52,8 @@ const MainHeader = () => {
   // Nên các query  này sẽ không bị inActive => Không bị gọi lạ -> ko cần thiết set stale : Infiniti
   const { data: purchasesIncartData } = useQuery({
     queryKey: ['purchases', { status: purchaseStatus.inCart }],
-    queryFn: () => purchaseApi.getPurchases({ status: purchaseStatus.inCart })
+    queryFn: () => purchaseApi.getPurchases({ status: purchaseStatus.inCart }),
+    enabled: isAuthenticated // chỉ chạy khi đăng nhập
   })
 
   const purchasesIncart = purchasesIncartData?.data.data as Purchase[] | undefined
@@ -288,9 +291,11 @@ const MainHeader = () => {
                     d='M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z'
                   />
                 </svg>
-                <span className='absolute top-[-5px] left-[17px] rounded-full px-2 py-1 bg-white  text-xs px-[9px] text-orange-600 py-[1px]'>
-                  {purchasesIncart?.length}
-                </span>
+                {purchasesIncart && (
+                  <span className='absolute top-[-5px] left-[17px] rounded-full px-2 py-1 bg-white  text-xs px-[9px] text-orange-600 py-[1px]'>
+                    {purchasesIncart?.length}
+                  </span>
+                )}
               </Link>
             </Popover>
           </div>
